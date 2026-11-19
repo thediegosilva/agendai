@@ -1,0 +1,11 @@
+node_modules/
+.env
+.DS_Store
+.idea/
+.vscode/
+dist/
+coverage/
+
+# Material pessoal de referência (não vai para o repositório)
+PROBLEMASNOAPP/
+REFERENCIASDEAPRIMORAMENTO/

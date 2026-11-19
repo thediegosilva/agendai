@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  OWNER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CANCELED
+  COMPLETED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  phone        String?
+  role         Role          @default(CLIENT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  businesses   Business[]
+  appointments Appointment[]
+}
+
+model Business {
+  id           String          @id @default(uuid())
+  name         String
+  description  String?
+  address      String?
+  ownerId      String
+  owner        User            @relation(fields: [ownerId], references: [id])
+  services     Service[]
+  hours        BusinessHours[]
+  appointments Appointment[]
+  timeBlocks   TimeBlock[]
+  createdAt    DateTime        @default(now())
+}
+
+model Service {
+  id              String        @id @default(uuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name            String
+  durationMinutes Int
+  priceCents      Int
+  active          Boolean       @default(true)
+  appointments    Appointment[]
+}
+
+/// Horário de funcionamento por dia da semana (0 = domingo ... 6 = sábado).
+/// Horários em minutos desde 00:00 (ex.: 9h = 540).
+model BusinessHours {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  weekday     Int
+  openMinute  Int
+  closeMinute Int
+
+  @@unique([businessId, weekday])
+}
+
+/// Bloqueios manuais da agenda (folga, almoço, feriado).
+model TimeBlock {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  startsAt   DateTime
+  endsAt     DateTime
+  reason     String?
+}
+
+model Appointment {
+  id         String            @id @default(uuid())
+  businessId String
+  business   Business          @relation(fields: [businessId], references: [id])
+  serviceId  String
+  service    Service           @relation(fields: [serviceId], references: [id])
+  clientId   String
+  client     User              @relation(fields: [clientId], references: [id])
+  startsAt   DateTime
+  endsAt     DateTime
+  status     AppointmentStatus @default(SCHEDULED)
+  priceCents Int
+  createdAt  DateTime          @default(now())
+
+  @@index([businessId, startsAt])
+}
